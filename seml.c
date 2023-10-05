@@ -15,8 +15,7 @@ void writeo(char const* data, unsigned len) {
 }
 
 char in_list = 0;
-char bold = 0;
-char buf[8192];
+char buf[16 * 1024 * 1024];
 int count = 0;
 int ofs = 0;
 
@@ -32,33 +31,7 @@ enum Mode {
 
 enum Mode mode = LineReady;
 
-void line_ready(void);
-void line_start(void);
-void par_ready(void);
-void head_ready(void);
-void head_start(void);
-void par_start(void);
-void par_end(void);
-
-void dispatch(void) {
-  switch (mode) {
-    case LineReady:
-      tail line_ready();
-    case LineStart:
-      tail line_start();
-    case ParReady:
-      tail par_ready();
-    case HeadReady:
-      tail head_ready();
-    case ParStart:
-      tail par_start();
-    case ParEnd:
-      tail par_end();
-    case HeadStart:
-      tail head_start();
-  }
-  abort();
-}
+void dispatch(void);
 
 void ensure_in_list() {
   if (!in_list) {
@@ -83,8 +56,8 @@ void par_end(void) {
     tail dispatch();
   }
   if (in_list && buf[ofs] == '*') {
-    next();
     mode = ParReady;
+    next();
     tail dispatch();
   }
   output("<br>");
@@ -137,8 +110,7 @@ void head_start(void) {
 void par_ready(void) {
   while (buf[ofs] == ' ' || buf[ofs] == '\n')
     next();
-  output(in_list ? "\n<li>" : bold ? "\n<p><strong>" : "\n<p>");
-  bold = 0;
+  output(in_list ? "\n<li>" : "\n<p>");
   mode = ParStart;
   tail dispatch();
 }
@@ -167,12 +139,32 @@ void line_ready(void) {
   tail dispatch();
 }
 
+void dispatch(void) {
+  switch (mode) {
+    case LineReady:
+      tail line_ready();
+    case LineStart:
+      tail line_start();
+    case ParReady:
+      tail par_ready();
+    case HeadReady:
+      tail head_ready();
+    case ParStart:
+      tail par_start();
+    case ParEnd:
+      tail par_end();
+    case HeadStart:
+      tail head_start();
+  }
+  abort();
+}
+
 int main() {
   output("Content-Type: text/html; charset=\"utf-8\"\n\n<html>\n<head>\n</head>\n<body>");
   
   while (1) {
     ofs = 0;
-    count = read(0, buf, 4096);
+    count = read(0, buf, sizeof(buf));
     if (count == -1)
       return 1;
     if (count == 0)

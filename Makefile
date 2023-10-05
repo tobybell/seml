@@ -1,5 +1,5 @@
 bin/seml: seml.c
-	clang -o $@ -Ofast $^
+	clang -o $@ -Os $^
 
 clean:
 	rm bin/seml
